@@ -325,7 +325,6 @@ describe('wrap function', () => {
   const getUser = (id: number) => Promise.resolve({ id });
 
   it('should work', async () => {
-    // await redisCache.store.getClient.connect();
     const id = 123;
 
     await redisCache.wrap('wrap-promise', () => getUser(id));
