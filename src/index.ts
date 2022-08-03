@@ -9,16 +9,7 @@ import '@redis/time-series';
 import { Cache, CachingConfig } from 'cache-manager';
 
 export interface CacheManagerOptions {
-  /**
-   * Time to live - amount of time in seconds that a response is cached before it
-   * is deleted. Subsequent request will call through the route handler and refresh
-   * the cache.  Defaults to 5 seconds.
-   */
   ttl?: number;
-  /**
-   * Maximum number of responses to store in the cache.  Defaults to 100.
-   */
-  max?: number;
   isCacheableValue?: (value: unknown) => boolean;
 }
 
@@ -35,7 +26,6 @@ const getVal = (value: unknown) => JSON.stringify(value) || '"undefined"';
 export async function redisStore(
   options?: RedisClientOptions & CacheManagerOptions,
 ) {
-  // console.log(options);
   const isCacheableValue =
     options?.isCacheableValue ||
     ((value) => value !== undefined && value !== null);
@@ -66,7 +56,7 @@ export async function redisStore(
         const multi = redisCache.multi();
         for (const [key, value] of args) {
           if (!isCacheableValue(value))
-            throw new Error(`"${value}" is not a cacheable value`);
+            throw new Error(`"${getVal(value)}" is not a cacheable value`);
           multi.setEx(key, ttl, getVal(value));
         }
         await multi.exec();
@@ -79,10 +69,11 @@ export async function redisStore(
       const val = await redisCache.get(key);
       if (val) return JSON.parse(val) as T;
     },
-    mget: (...args: string[]) => redisCache.mGet(args),
-    del: async (...args: [string] | string[]) => {
-      await redisCache.del(args);
-    },
+    mget: (...args: string[]) =>
+      redisCache
+        .mGet(args)
+        .then((x) => x.map((x) => (x ? JSON.parse(x) : undefined))),
+    del: (...args: [string] | string[]) => redisCache.del(args),
     reset: () => redisCache.flushDb(),
     keys: (pattern = '*') => redisCache.keys(pattern),
     ttl: (key: string) => redisCache.ttl(key),
