@@ -1,41 +1,72 @@
 {
-  "name": "cache-manager-redis-store",
-  "author": "Matthijs Dabroek <dabroek@gmail.com>",
-  "description": "Redis store for node-cache-manager",
+  "name": "cache-manager-redis-yet",
+  "authors": [
+    "Matthijs Dabroek <dabroek@gmail.com>",
+    {
+      "name": "Juan Aguilar Santillana",
+      "email": "mhpoin@gmail.com"
+    }
+  ],
+  "description": "Redis store for node-cache-manager updated",
   "version": "2.0.0",
   "license": "MIT",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "repository": {
     "type": "git",
-    "url": "https://github.com/dabroek/node-cache-manager-redis-store.git"
+    "url": "https://github.com/botika/node-cache-manager-redis-v4.git"
   },
   "scripts": {
-    "prepare": "npm prune",
-    "test": "jest --forceExit",
-    "test-cov": "jest --forceExit --coverage && cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js",
-    "build": "rollup -c"
+    "build": "rm -rf dist && tsc -p tsconfig.build.json",
+    "test:watch": "vitest test.ts",
+    "test": "pnpm test:watch --run",
+    "release": "pnpm check && pnpm test && pnpm build && dotenv release-it",
+    "fix": "pnpm lint && pnpm fmt",
+    "check": "pnpm lint:check && pnpm fmt:check",
+    "lint": "eslint --cache --fix '**/*.{ts,js}'",
+    "fmt": "prettier --write '**/*.{md,prisma,json}'",
+    "lint:check": "eslint --cache --max-warnings 0 '**/*.{ts,js}'",
+    "fmt:check": "prettier --check '**/*.{md,prisma,json}'",
+    "commitlint": "commitlint",
+    "prepare": "husky install"
   },
   "dependencies": {
-    "redis": "^3.0.2"
+    "@redis/bloom": "^1.0.2",
+    "@redis/client": "^1.2.0",
+    "@redis/graph": "^1.0.1",
+    "@redis/json": "^1.0.3",
+    "@redis/search": "^1.0.6",
+    "@redis/time-series": "^1.0.3",
+    "cache-manager": "^2.9.0",
+    "redis": "^4.0.6"
   },
   "devDependencies": {
-    "@babel/cli": "^7.8.4",
-    "@babel/core": "^7.8.4",
-    "@babel/plugin-external-helpers": "^7.8.3",
-    "@babel/plugin-transform-runtime": "^7.8.3",
-    "@babel/preset-env": "^7.8.4",
-    "@babel/runtime": "^7.8.4",
+    "@commitlint/cli": "^17.0.3",
+    "@commitlint/config-conventional": "^17.0.3",
+    "@release-it/conventional-changelog": "^5.0.0",
     "@types/cache-manager": "^3.4.0",
+    "@types/node": "^18.6.2",
     "@types/redis": "^2.8.28",
-    "babel-jest": "^25.1.0",
-    "cache-manager": "^2.9.0",
-    "coveralls": "^3.0.9",
-    "jest": "^25.1.0",
-    "rollup": "^1.31.0",
-    "rollup-plugin-babel": "^4.3.3"
+    "@typescript-eslint/eslint-plugin": "^5.31.0",
+    "@typescript-eslint/parser": "^5.31.0",
+    "dotenv-cli": "^6.0.0",
+    "eslint": "^8.20.0",
+    "eslint-config-prettier": "^8.5.0",
+    "eslint-plugin-prettier": "^4.2.1",
+    "husky": "^8.0.1",
+    "lint-staged": "^13.0.3",
+    "prettier": "^2.7.1",
+    "prettier-plugin-prisma": "^4.1.0",
+    "prisma": "^4.1.1",
+    "release-it": "^15.2.0",
+    "typescript": "^4.7.4",
+    "vitest": "^0.19.1"
   },
   "engines": {
-    "node": ">= 8.3"
+    "node": ">= 16"
+  },
+  "lint-staged": {
+    "*.{ts,js}": "eslint --cache --fix",
+    "*.{json,prisma,md,yml}": "prettier --write"
   }
 }
