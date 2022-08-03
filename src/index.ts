@@ -34,10 +34,11 @@ export interface RedisStore extends Store {
   name: 'redis';
   isCacheableValue: (value: unknown) => boolean;
   get getClient(): RedisClientType;
-  set<T>(key: string, value: T, options?: CachingConfig): Promise<void>;
-  set<T>(key: string, value: T, ttl: number): Promise<void>;
+
   set<T>(key: string, value: T, options: CachingConfig, callback: CBSet): void;
   set<T>(key: string, value: T, ttl: number, callback: CBSet): void;
+  set<T>(key: string, value: T, options?: CachingConfig): Promise<void>;
+  set<T>(key: string, value: T, ttl: number): Promise<void>;
 
   get<T>(key: string, opt: null, callback: CB<T>): void;
   get<T>(key: string): Promise<T | undefined>;
@@ -47,20 +48,24 @@ export interface RedisStore extends Store {
   del(key: string): Promise<void>;
   del(key: string[]): Promise<void>;
 
-  reset(): Promise<void>;
   reset(cb: () => void): void;
+  reset(): Promise<void>;
 
+  mset(args: [string, unknown][], ttl: number | undefined, cb: CBSet): void;
   mset(args: [string, unknown][], ttl?: number): Promise<void>;
 
+  mget(...args: [...string[], CB<unknown[]>]): void;
   mget(...args: string[]): Promise<unknown[]>;
 
   keys(pattern: string | undefined, cb: CB<string[]>): void;
   keys(pattern?: string): Promise<string[]>;
 
+  ttl(key: string, cb?: CB<number>): void;
   ttl(key: string): Promise<number>;
 }
 
 const getVal = (value: unknown) => JSON.stringify(value) || '"undefined"';
+
 export async function redisStore(
   options?: RedisClientOptions & CacheManagerOptions,
 ) {
@@ -94,6 +99,32 @@ export async function redisStore(
     await redisCache.flushDb();
   };
 
+  const mset = async (args: [string, unknown][], ttl: number | undefined) => {
+    if (!ttl) ttl = options?.ttl;
+
+    if (ttl) {
+      const multi = redisCache.multi();
+      for (const [key, value] of args) {
+        if (!isCacheableValue(value))
+          throw new Error(`"${getVal(value)}" is not a cacheable value`);
+        multi.setEx(key, ttl, getVal(value));
+      }
+      await multi.exec();
+    } else
+      await redisCache.mSet(
+        args.map(([key, value]) => {
+          if (!isCacheableValue(value))
+            throw new Error(`"${getVal(value)}" is not a cacheable value`);
+          return [key, getVal(value)] as [string, string];
+        }),
+      );
+  };
+  const mget = (...args: string[]) =>
+    redisCache
+      .mGet(args)
+      .then((x) =>
+        x.map((x) => (x === null ? null : (JSON.parse(x) as unknown))),
+      );
   return {
     name: 'redis' as const,
     isCacheableValue,
@@ -104,36 +135,20 @@ export async function redisStore(
       if (typeof cb === 'function') callbackify(set<T>)(key, value, ttl, cb);
       else return set<T>(key, value, ttl);
     },
-    // TODO: callbackify
-    mset: async (args: [string, unknown][], ttl?: number) => {
-      if (!ttl) ttl = options?.ttl;
-
-      if (ttl) {
-        const multi = redisCache.multi();
-        for (const [key, value] of args) {
-          if (!isCacheableValue(value))
-            throw new Error(`"${getVal(value)}" is not a cacheable value`);
-          multi.setEx(key, ttl, getVal(value));
-        }
-        await multi.exec();
-      } else
-        await redisCache.mSet(
-          args.map(([key, value]) => {
-            if (!isCacheableValue(value))
-              throw new Error(`"${getVal(value)}" is not a cacheable value`);
-            return [key, getVal(value)] as [string, string];
-          }),
-        );
-    },
     get<T>(key: string, opt?: null, cb?: CB<T>) {
       if (typeof cb === 'function') callbackify(get<T>)(key, cb);
       else return get<T>(key);
     },
-    // TODO: callbackify
-    mget: (...args: string[]) =>
-      redisCache
-        .mGet(args)
-        .then((x) => x.map((x) => (x === null ? null : JSON.parse(x)))),
+    mset(args: [string, unknown][], ttl?: number, cb?: CBSet) {
+      if (typeof cb === 'function') callbackify(mset)(args, ttl, cb);
+      else return mset(args, ttl);
+    },
+    mget(...args: [...string[], CB<unknown[]>]) {
+      if (typeof args.at(-1) === 'function') {
+        const cb = args.pop() as CB<unknown[]>;
+        callbackify(() => mget(...(args as string[])))(cb);
+      } else return mget(...(args as string[]));
+    },
     del(args: string | string[], cb?: CBSet) {
       const fn = async () => {
         await redisCache.del(args);
@@ -150,6 +165,9 @@ export async function redisStore(
         callbackify(() => redisCache.keys(pattern))(cb);
       else return redisCache.keys(pattern);
     },
-    ttl: (key: string) => redisCache.ttl(key),
+    ttl: (key: string, cb?: CB<number>) => {
+      if (typeof cb === 'function') callbackify(() => redisCache.ttl(key))(cb);
+      else return redisCache.ttl(key);
+    },
   } as RedisStore;
 }
