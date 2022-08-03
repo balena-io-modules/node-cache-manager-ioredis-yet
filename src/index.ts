@@ -65,7 +65,7 @@ export async function redisStore(
           args.map(([key, value]) => {
             if (!isCacheableValue(value))
               throw new Error(`"${getVal(value)}" is not a cacheable value`);
-            return [key, getVal(value)];
+            return [key, getVal(value)] as [string, string];
           }),
         );
     },
