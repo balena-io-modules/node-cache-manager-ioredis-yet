@@ -38,15 +38,14 @@ beforeEach(async () => {
 });
 
 describe('set', () => {
-  it('should store a value without ttl', async () => {
-    expect(await redisCache.set('foo', 'bar')).toEqual('bar');
-  });
+  it('should store a value without ttl', () =>
+    expect(redisCache.set('foo', 'bar')).resolves.toBeUndefined());
 
   it('should store a value with a specific ttl', () =>
-    expect(redisCache.set('foo', 'bar', config.ttl)).resolves.toEqual('bar'));
+    expect(redisCache.set('foo', 'bar', config.ttl)).resolves.toBeUndefined());
 
   it('should store a value with a infinite ttl', () =>
-    expect(redisCache.set('foo', 'bar', { ttl: 0 })).resolves.toEqual('bar'));
+    expect(redisCache.set('foo', 'bar', { ttl: 0 })).resolves.toBeUndefined());
 
   it('should not be able to store a null value (not cacheable)', () =>
     expect(redisCache.set('foo2', null)).rejects.toBeDefined());
@@ -176,7 +175,7 @@ describe('mget', () => {
 describe('del', () => {
   it('should delete a value for a given key', async () => {
     await redisCache.set('foo', 'bar');
-    await expect(redisCache.del('foo')).resolves.toEqual(1);
+    await expect(redisCache.del('foo')).resolves.toBeUndefined();
   });
 
   it('should delete a unlimited number of keys', async () => {
@@ -184,7 +183,9 @@ describe('del', () => {
       ['foo', 'bar'],
       ['foo2', 'bar2'],
     ]);
-    await expect(redisCache.store.del(['foo', 'foo2'])).resolves.toEqual(2);
+    await expect(
+      redisCache.store.del(['foo', 'foo2']),
+    ).resolves.toBeUndefined();
   });
 
   it('should return an error if there is an error acquiring a connection', async () => {

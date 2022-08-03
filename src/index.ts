@@ -15,7 +15,7 @@ export type WrapArgsType<T> =
   | (() => PromiseLike<T> | T);
 
 type CachingConfig = {
-  ttl: number | ((value: unknown) => number);
+  ttl?: number | ((value: unknown) => number);
 };
 type CB<T> = (err: NodeJS.ErrnoException | null, result: T | null) => void;
 
@@ -69,8 +69,6 @@ export async function redisStore(
 
     if (ttl) await redisCache.setEx(key, ttl, getVal(value));
     else await redisCache.set(key, getVal(value));
-
-    return value;
   };
   return {
     name: 'redis' as const,
@@ -84,8 +82,7 @@ export async function redisStore(
       ttl?: number | CachingConfig,
       cb?: CBSet,
     ) => {
-      if (typeof cb === 'function')
-        callbackify(set<T>)(key, value, ttl, cb as CBSet);
+      if (typeof cb === 'function') callbackify(set<T>)(key, value, ttl, cb);
       else return set<T>(key, value, ttl);
     },
     mset: async (args: [string, unknown][], ttl?: number) => {
@@ -116,9 +113,12 @@ export async function redisStore(
       redisCache
         .mGet(args)
         .then((x) => x.map((x) => (x === null ? null : JSON.parse(x)))),
-    del: (args: string | string[], cb?: CB<number>) => {
-      if (typeof cb === 'function') callbackify(() => redisCache.del(args))(cb);
-      else return redisCache.del(args);
+    del: (args: string | string[], cb?: CBSet) => {
+      const fn = async () => {
+        await redisCache.del(args);
+      };
+      if (typeof cb === 'function') callbackify(fn)(cb);
+      else return fn();
     },
     reset: (cb?: CB<string>) => {
       if (typeof cb === 'function') callbackify(redisCache.flushDb)(cb);
