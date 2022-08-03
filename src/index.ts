@@ -62,7 +62,11 @@ export async function redisStore(
         await multi.exec();
       } else
         await redisCache.mSet(
-          args.flatMap(([key, value]) => [key, getVal(value)]),
+          args.map(([key, value]) => {
+            if (!isCacheableValue(value))
+              throw new Error(`"${getVal(value)}" is not a cacheable value`);
+            return [key, getVal(value)];
+          }),
         );
     },
     get: async <T>(key: string) => {
@@ -72,7 +76,7 @@ export async function redisStore(
     mget: (...args: string[]) =>
       redisCache
         .mGet(args)
-        .then((x) => x.map((x) => (x ? JSON.parse(x) : undefined))),
+        .then((x) => x.map((x) => (x === null ? null : JSON.parse(x)))),
     del: (...args: [string] | string[]) => redisCache.del(args),
     reset: () => redisCache.flushDb(),
     keys: (pattern = '*') => redisCache.keys(pattern),
