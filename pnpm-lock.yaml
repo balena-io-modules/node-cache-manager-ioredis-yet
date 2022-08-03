@@ -10,7 +10,6 @@ specifiers:
   '@redis/search': ^1.0.6
   '@redis/time-series': ^1.0.3
   '@release-it/conventional-changelog': ^5.0.0
-  '@types/cache-manager': ^4.0.1
   '@types/node': ^18.6.3
   '@typescript-eslint/eslint-plugin': ^5.32.0
   '@typescript-eslint/parser': ^5.32.0
@@ -43,7 +42,6 @@ devDependencies:
   '@commitlint/cli': 17.0.3
   '@commitlint/config-conventional': 17.0.3
   '@release-it/conventional-changelog': 5.0.0_release-it@15.2.0
-  '@types/cache-manager': 4.0.1
   '@types/node': 18.6.3
   '@typescript-eslint/eslint-plugin': 5.32.0_iosr3hrei2tubxveewluhu5lhy
   '@typescript-eslint/parser': 5.32.0_qugx7qdu5zevzvxaiqyxfiwquq
@@ -573,10 +571,6 @@ packages:
 
   /@tsconfig/node16/1.0.3:
     resolution: {integrity: sha512-yOlFc+7UtL/89t2ZhjPvvB/DeAr3r+Dq58IgzsFkOAvVC6NMJXmCGjbptdXdR9qsX7pKcTL+s87FtYREi2dEEQ==}
-    dev: true
-
-  /@types/cache-manager/4.0.1:
-    resolution: {integrity: sha512-w4Gm7qg4ohvk0k4CLhOoqnMohWEyeyAOTovPgkguhuDCfVEV1wN/HWEd1XzB1S9/NV9pUcZcc498qU4E15ck6A==}
     dev: true
 
   /@types/cacheable-request/6.0.2:
