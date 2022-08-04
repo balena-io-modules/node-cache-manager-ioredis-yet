@@ -1,4 +1,4 @@
-# Redis store for node cache manager
+# Redis store for node cache manager [![npm version](https://badge.fury.io/js/cache-manager-redis-yet.svg)](https://www.npmjs.com/package/cache-manager-redis-yet)
 
 Redis cache store for [node-cache-manager](https://github.com/BryanDonovan/node-cache-manager).
 
@@ -13,13 +13,14 @@ pnpm install cache-manager-redis-yet
 #### Module
 
 ```typescript
-import { CacheModule } from '@nestjs/common';
+import { CacheModule as _CacheModule } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+
 import { redisStore } from 'cache-manager-redis-yet';
 
 @Module({
   imports: [
-    CacheModule.registerAsync({
+    _CacheModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: async (config: ConfigService) => {
@@ -38,7 +39,7 @@ import { redisStore } from 'cache-manager-redis-yet';
 export class CacheModule {}
 ```
 
-### NestJs Service
+### Service
 
 ```typescript
 import { CACHE_MANAGER, Inject, Injectable } from '@nestjs/common';
