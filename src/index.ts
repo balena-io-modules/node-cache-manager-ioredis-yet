@@ -14,7 +14,7 @@ import '@redis/json';
 import '@redis/search';
 import '@redis/time-series';
 
-import { Cache, Store } from 'cache-manager';
+import type { Cache, Store } from 'cache-manager';
 
 type CachingConfig = {
   ttl?: number | ((value: unknown) => number);

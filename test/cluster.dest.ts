@@ -1,20 +1,31 @@
 import { describe, expect, it, beforeEach } from 'vitest';
 import cacheManager from 'cache-manager';
-import { redisStore, RedisCache } from '../src';
+import { redisClusterStore, RedisCache } from '../src';
+import { RedisClusterOptions, RedisClusterType } from 'redis';
 
-let redisCache: RedisCache;
-let customRedisCache: RedisCache;
+let redisCache: RedisCache<RedisClusterType>;
+let customRedisCache: RedisCache<RedisClusterType>;
 
-const config = {
-  url: 'redis://localhost:6379',
+// TODO: https://github.com/redis/node-redis/issues/2213
+const config: RedisClusterOptions & { ttl: number } = {
+  rootNodes: [
+    { url: 'redis://host.docker.internal:6380', name: 'c0' },
+    // { url: 'redis://redis-c1:6379', name: 'c1' },
+  ],
+  nodeAddressMap: {
+    '127.0.0.1': {
+      host: 'host.docker.internal',
+      port: 6380,
+    },
+  },
   ttl: 0,
 };
 
 beforeEach(async () => {
   redisCache = cacheManager.caching({
-    store: await redisStore(config),
+    store: await redisClusterStore(config),
     ...config,
-  }) as RedisCache;
+  }) as RedisCache<RedisClusterType>;
 
   const conf = {
     ...config,
@@ -30,9 +41,9 @@ beforeEach(async () => {
     },
   };
   customRedisCache = cacheManager.caching({
-    store: await redisStore(conf),
+    store: await redisClusterStore(conf),
     ...conf,
-  }) as RedisCache;
+  }) as RedisCache<RedisClusterType>;
 });
 
 describe('set', () => {
