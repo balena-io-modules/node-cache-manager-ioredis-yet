@@ -81,8 +81,11 @@ export interface RedisStore<T extends Clients = RedisClientType> extends Store {
 
 const getVal = (value: unknown) => JSON.stringify(value) || '"undefined"';
 
-export function builder(
-  redisCache: RedisClientType | RedisClusterType,
+export function builder<T extends Clients>(
+  redisCache: T,
+  name: Name<T>,
+  reset: () => Promise<void>,
+  keys: (pattern: string) => Promise<string[]>,
   options?: CacheManagerOptions,
 ) {
   const isCacheableValue =
@@ -139,7 +142,6 @@ export function builder(
       );
   return {
     isCacheableValue,
-
     set<T>(key: string, value: T, ttl?: number | CachingConfig, cb?: CBSet) {
       if (typeof cb === 'function') callbackify(set<T>)(key, value, ttl, cb);
       else return set<T>(key, value, ttl);
@@ -170,7 +172,19 @@ export function builder(
       if (typeof cb === 'function') callbackify(() => redisCache.ttl(key))(cb);
       else return redisCache.ttl(key);
     },
-  };
+    name,
+    get getClient() {
+      return redisCache;
+    },
+    reset(cb?: CBSet) {
+      if (typeof cb === 'function') callbackify(reset)(cb);
+      else return reset();
+    },
+    keys(pattern = '*', cb?: CB<string[]>) {
+      if (typeof cb === 'function') callbackify(() => keys(pattern))(cb);
+      else return keys(pattern);
+    },
+  } as RedisStore<T>;
 }
 
 // TODO: past instance as option
@@ -183,23 +197,9 @@ export async function redisStore(
   const reset = async () => {
     await redisCache.flushDb();
   };
+  const keys = (pattern: string) => redisCache.keys(pattern);
 
-  return {
-    ...builder(redisCache as RedisClientType, options),
-    name: 'redis' as const,
-    get getClient() {
-      return redisCache;
-    },
-    reset(cb?: CBSet) {
-      if (typeof cb === 'function') callbackify(reset)(cb);
-      else return reset();
-    },
-    keys(pattern = '*', cb?: CB<string[]>) {
-      if (typeof cb === 'function')
-        callbackify(() => redisCache.keys(pattern))(cb);
-      else return redisCache.keys(pattern);
-    },
-  } as RedisStore;
+  return builder(redisCache as RedisClientType, 'redis', reset, keys, options);
 }
 
 // TODO: coverage
@@ -210,10 +210,9 @@ export async function redisClusterStore(
   await redisCache.connect();
 
   const reset = async () => {
-    const nodes = redisCache.getMasters();
-    for (const node of nodes) {
-      await node.client.flushDb();
-    }
+    await Promise.all(
+      redisCache.getMasters().map((node) => node.client.flushDb()),
+    );
   };
 
   const keys = async (pattern: string) =>
@@ -223,19 +222,5 @@ export async function redisClusterStore(
       )
     ).flat();
 
-  return {
-    ...builder(redisCache as RedisClusterType, options),
-    name: 'redis-cluster' as const,
-    get getClient() {
-      return redisCache;
-    },
-    reset(cb?: CBSet) {
-      if (typeof cb === 'function') callbackify(reset)(cb);
-      else return reset();
-    },
-    keys(pattern = '*', cb?: CB<string[]>) {
-      if (typeof cb === 'function') callbackify(() => keys(pattern))(cb);
-      else return keys(pattern);
-    },
-  } as RedisStore<RedisClusterType>;
+  return builder(redisCache, 'redis-cluster', reset, keys, options);
 }
