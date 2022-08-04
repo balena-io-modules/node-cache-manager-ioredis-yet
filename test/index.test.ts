@@ -234,11 +234,11 @@ describe('keys', () => {
       ['foo2', 'bar2'],
       ['foo3', 'bar3'],
     ]);
-    await expect(redisCache.store.keys('f*')).resolves.toStrictEqual([
-      'foo3',
-      'foo2',
-      'foo',
-    ]);
+    await expect(
+      redisCache.store
+        .keys('f*')
+        .then((x) => x.sort((a, b) => a.localeCompare(b))),
+    ).resolves.toStrictEqual(['foo', 'foo2', 'foo3']);
   });
 
   it('should return an array of keys without pattern', async () => {
