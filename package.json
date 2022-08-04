@@ -14,7 +14,7 @@
   "types": "dist/index.d.ts",
   "repository": {
     "type": "git",
-    "url": "https://github.com/botika/node-cache-manager-redis-v4.git"
+    "url": "https://github.com/botika/node-cache-manager-redis-yet.git"
   },
   "scripts": {
     "build": "rm -rf dist && tsc -p tsconfig.build.json",
