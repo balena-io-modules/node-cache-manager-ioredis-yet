@@ -1,5 +1,12 @@
 import { callbackify } from 'node:util';
-import { createClient, RedisClientOptions, RedisClientType } from 'redis';
+import {
+  createClient,
+  createCluster,
+  RedisClientOptions,
+  RedisClientType,
+  RedisClusterOptions,
+  RedisClusterType,
+} from 'redis';
 import '@redis/client';
 import '@redis/bloom';
 import '@redis/graph';
@@ -22,18 +29,26 @@ export interface CacheManagerOptions {
   isCacheableValue?: (value: unknown) => boolean;
 }
 
-export interface RedisCache extends Cache {
-  store: RedisStore;
-  set: RedisStore['set'];
-  get: RedisStore['get'];
-  del: RedisStore['del'];
-  reset: RedisStore['reset'];
+type Clients = RedisClientType | RedisClusterType;
+
+export interface RedisCache<T extends Clients = RedisClientType> extends Cache {
+  store: RedisStore<T>;
+  set: RedisStore<T>['set'];
+  get: RedisStore<T>['get'];
+  del: RedisStore<T>['del'];
+  reset: RedisStore<T>['reset'];
 }
 
-export interface RedisStore extends Store {
-  name: 'redis';
+type Name<T extends Clients> = T extends RedisClientType
+  ? 'redis'
+  : T extends RedisClusterType
+  ? 'redis-cluster'
+  : never;
+
+export interface RedisStore<T extends Clients = RedisClientType> extends Store {
+  name: Name<T>;
   isCacheableValue: (value: unknown) => boolean;
-  get getClient(): RedisClientType;
+  get getClient(): T;
 
   set<T>(key: string, value: T, options: CachingConfig, callback: CBSet): void;
   set<T>(key: string, value: T, ttl: number, callback: CBSet): void;
@@ -66,16 +81,14 @@ export interface RedisStore extends Store {
 
 const getVal = (value: unknown) => JSON.stringify(value) || '"undefined"';
 
-// TODO: redis cluster
-// TODO: past instance as option
-export async function redisStore(
-  options?: RedisClientOptions & CacheManagerOptions,
+export function builder(
+  redisCache: RedisClientType | RedisClusterType,
+  options?: CacheManagerOptions,
 ) {
   const isCacheableValue =
     options?.isCacheableValue ||
     ((value) => value !== undefined && value !== null);
-  const redisCache = createClient(options);
-  await redisCache.connect();
+
   const get = async <T>(key: string) => {
     const val = await redisCache.get(key);
     if (val) return JSON.parse(val) as T;
@@ -96,9 +109,6 @@ export async function redisStore(
 
     if (ttl) await redisCache.setEx(key, ttl, getVal(value));
     else await redisCache.set(key, getVal(value));
-  };
-  const reset = async () => {
-    await redisCache.flushDb();
   };
 
   const mset = async (args: [string, unknown][], ttl: number | undefined) => {
@@ -128,11 +138,8 @@ export async function redisStore(
         x.map((x) => (x === null ? null : (JSON.parse(x) as unknown))),
       );
   return {
-    name: 'redis' as const,
     isCacheableValue,
-    get getClient() {
-      return redisCache;
-    },
+
     set<T>(key: string, value: T, ttl?: number | CachingConfig, cb?: CBSet) {
       if (typeof cb === 'function') callbackify(set<T>)(key, value, ttl, cb);
       else return set<T>(key, value, ttl);
@@ -158,6 +165,31 @@ export async function redisStore(
       if (typeof cb === 'function') callbackify(fn)(cb);
       else return fn();
     },
+
+    ttl: (key: string, cb?: CB<number>) => {
+      if (typeof cb === 'function') callbackify(() => redisCache.ttl(key))(cb);
+      else return redisCache.ttl(key);
+    },
+  };
+}
+
+// TODO: past instance as option
+export async function redisStore(
+  options?: RedisClientOptions & CacheManagerOptions,
+) {
+  const redisCache = createClient(options);
+  await redisCache.connect();
+
+  const reset = async () => {
+    await redisCache.flushDb();
+  };
+
+  return {
+    ...builder(redisCache as RedisClientType, options),
+    name: 'redis' as const,
+    get getClient() {
+      return redisCache;
+    },
     reset(cb?: CBSet) {
       if (typeof cb === 'function') callbackify(reset)(cb);
       else return reset();
@@ -167,9 +199,43 @@ export async function redisStore(
         callbackify(() => redisCache.keys(pattern))(cb);
       else return redisCache.keys(pattern);
     },
-    ttl: (key: string, cb?: CB<number>) => {
-      if (typeof cb === 'function') callbackify(() => redisCache.ttl(key))(cb);
-      else return redisCache.ttl(key);
-    },
   } as RedisStore;
+}
+
+// TODO: coverage
+export async function redisClusterStore(
+  options: RedisClusterOptions & CacheManagerOptions,
+) {
+  const redisCache = createCluster(options);
+  await redisCache.connect();
+
+  const reset = async () => {
+    const nodes = redisCache.getMasters();
+    for (const node of nodes) {
+      await node.client.flushDb();
+    }
+  };
+
+  const keys = async (pattern: string) =>
+    (
+      await Promise.all(
+        redisCache.getMasters().map((node) => node.client.keys(pattern)),
+      )
+    ).flat();
+
+  return {
+    ...builder(redisCache as RedisClusterType, options),
+    name: 'redis-cluster' as const,
+    get getClient() {
+      return redisCache;
+    },
+    reset(cb?: CBSet) {
+      if (typeof cb === 'function') callbackify(reset)(cb);
+      else return reset();
+    },
+    keys(pattern = '*', cb?: CB<string[]>) {
+      if (typeof cb === 'function') callbackify(() => keys(pattern))(cb);
+      else return keys(pattern);
+    },
+  } as RedisStore<RedisClusterType>;
 }
