@@ -60,12 +60,14 @@ export interface RedisStore extends Store {
   keys(pattern: string | undefined, cb: CB<string[]>): void;
   keys(pattern?: string): Promise<string[]>;
 
-  ttl(key: string, cb?: CB<number>): void;
+  ttl(key: string, cb: CB<number>): void;
   ttl(key: string): Promise<number>;
 }
 
 const getVal = (value: unknown) => JSON.stringify(value) || '"undefined"';
 
+// TODO: redis cluster
+// TODO: past instance as option
 export async function redisStore(
   options?: RedisClientOptions & CacheManagerOptions,
 ) {

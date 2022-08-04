@@ -253,73 +253,35 @@ describe('keys', () => {
   });
 });
 
-// describe('isCacheableValue', () => {
-//   it('should return true when the value is not undefined', (done) => {
-//     expect(redisCache.store.isCacheableValue(0)).toBe(true);
-//     expect(redisCache.store.isCacheableValue(100)).toBe(true);
-//     expect(redisCache.store.isCacheableValue('')).toBe(true);
-//     expect(redisCache.store.isCacheableValue('test')).toBe(true);
-//     done();
-//   });
-//
-//   it('should return false when the value is undefined', (done) => {
-//     expect(redisCache.store.isCacheableValue(undefined)).toBe(false);
-//     done();
-//   });
-//
-//   it('should return false when the value is null', (done) => {
-//     expect(redisCache.store.isCacheableValue(null)).toBe(false);
-//     done();
-//   });
-// });
-//
-// describe('redis error event', () => {
-//   it('should return an error when the redis server is unavailable', (done) => {
-//     redisCache.store.getClient.on('error', (err) => {
-//       expect(err).not.toEqual(null);
-//       done();
-//     });
-//     redisCache.store.getClient.emit('error', 'Something unexpected');
-//   });
-// });
-//
-// describe('overridable isCacheableValue function', () => {
-//   let redisCache2;
-//
-//   beforeEach(() => {
-//     redisCache2 = cacheManager.caching({
-//       store: redisStore,
-//       auth_pass: config.auth_pass,
-//       isCacheableValue: () => {
-//         return 'I was overridden';
-//       }
-//     });
-//   });
-//
-//   it('should return its return value instead of the built-in function', (done) => {
-//     expect(redisCache2.store.isCacheableValue(0)).toEqual('I was overridden');
-//     done();
-//   });
-// });
-//
-// describe('defaults are set by redis itself', () => {
-//   let redisCache2;
-//
-//   beforeEach(() => {
-//     redisCache2 = cacheManager.caching({
-//       store: redisStore,
-//       auth_pass: config.auth_pass,
-//     });
-//   });
-//
-//   it('should default the host to `127.0.0.1`', () => {
-//     expect(redisCache2.store.getClient.connection_options.host).toEqual('127.0.0.1');
-//   });
-//
-//   it('should default the port to 6379', () => {
-//     expect(redisCache2.store.getClient.connection_options.port).toEqual(6379);
-//   });
-// });
+describe('isCacheableValue', () => {
+  it('should return true when the value is not undefined', () => {
+    expect(redisCache.store.isCacheableValue(0)).toBeTruthy();
+    expect(redisCache.store.isCacheableValue(100)).toBeTruthy();
+    expect(redisCache.store.isCacheableValue('')).toBeTruthy();
+    expect(redisCache.store.isCacheableValue('test')).toBeTruthy();
+  });
+
+  it('should return false when the value is undefined', () => {
+    expect(redisCache.store.isCacheableValue(undefined)).toBeFalsy();
+  });
+
+  it('should return false when the value is null', () => {
+    expect(redisCache.store.isCacheableValue(null)).toBeFalsy();
+  });
+});
+
+describe('redis error event', () => {
+  it('should return an error when the redis server is unavailable', async () => {
+    await new Promise<void>((resolve) => {
+      redisCache.store.getClient.on('error', (err) => {
+        expect(err).not.toEqual(null);
+        resolve();
+      });
+
+      redisCache.store.getClient.emit('error', 'Something unexpected');
+    });
+  });
+});
 
 describe('wrap function', () => {
   // Simulate retrieving a user from a database
