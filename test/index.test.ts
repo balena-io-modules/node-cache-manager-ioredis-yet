@@ -45,7 +45,7 @@ describe('instance', () => {
       ...config,
     }) as RedisCache;
     await cache.set('fooll', 'bar');
-    expect(cache.get('fooll')).resolves.toEqual('bar');
+    await expect(cache.get('fooll')).resolves.toEqual('bar');
   });
 });
 
