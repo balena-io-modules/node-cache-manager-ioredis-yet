@@ -194,12 +194,22 @@ export async function redisStore(
   const redisCache = createClient(options);
   await redisCache.connect();
 
+  return redisInsStore(redisCache as RedisClientType, options);
+}
+
+/**
+ * redisCache should be connected
+ */
+export function redisInsStore(
+  redisCache: RedisClientType,
+  options?: CacheManagerOptions,
+) {
   const reset = async () => {
     await redisCache.flushDb();
   };
   const keys = (pattern: string) => redisCache.keys(pattern);
 
-  return builder(redisCache as RedisClientType, 'redis', reset, keys, options);
+  return builder(redisCache, 'redis', reset, keys, options);
 }
 
 // TODO: coverage
@@ -209,6 +219,17 @@ export async function redisClusterStore(
   const redisCache = createCluster(options);
   await redisCache.connect();
 
+  return redisClusterInsStore(redisCache, options);
+}
+
+// TODO: coverage
+/**
+ * redisCache should be connected
+ */
+export function redisClusterInsStore(
+  redisCache: RedisClusterType,
+  options: RedisClusterOptions & CacheManagerOptions,
+) {
   const reset = async () => {
     await Promise.all(
       redisCache.getMasters().map((node) => node.client.flushDb()),

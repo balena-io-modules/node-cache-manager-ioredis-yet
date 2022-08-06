@@ -1,6 +1,7 @@
 import { describe, expect, it, beforeEach } from 'vitest';
 import cacheManager from 'cache-manager';
-import { redisStore, RedisCache } from '../src';
+import { redisStore, RedisCache, redisInsStore } from '../src';
+import { createClient, RedisClientType } from 'redis';
 
 let redisCache: RedisCache;
 let customRedisCache: RedisCache;
@@ -33,6 +34,19 @@ beforeEach(async () => {
     store: await redisStore(conf),
     ...conf,
   }) as RedisCache;
+});
+
+describe('instance', () => {
+  it('should be constructed', async () => {
+    const instance: RedisClientType = await createClient(config);
+    await instance.connect();
+    const cache = cacheManager.caching({
+      store: redisInsStore(instance, config),
+      ...config,
+    }) as RedisCache;
+    await cache.set('fooll', 'bar');
+    expect(cache.get('fooll')).resolves.toEqual('bar');
+  });
 });
 
 describe('set', () => {
