@@ -1,7 +1,10 @@
 {
   "name": "cache-manager-redis-yet",
   "authors": [
-    "Matthijs Dabroek <dabroek@gmail.com>",
+    {
+      "name": "Matthijs Dabroek",
+      "email": "dabroek@gmail.com"
+    },
     {
       "name": "Juan Aguilar Santillana",
       "email": "mhpoin@gmail.com"
@@ -14,7 +17,7 @@
   "types": "dist/index.d.ts",
   "repository": {
     "type": "git",
-    "url": "https://github.com/botika/node-cache-manager-redis-yet.git"
+    "url": "https://github.com/node-cache-manager/node-cache-manager-redis-yet.git"
   },
   "keywords": [
     "cache-manager",
