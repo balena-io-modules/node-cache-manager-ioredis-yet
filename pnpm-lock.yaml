@@ -22,8 +22,6 @@ specifiers:
   husky: 8.0.1
   lint-staged: 13.0.3
   prettier: 2.7.1
-  prettier-plugin-prisma: 4.1.0
-  prisma: 4.1.1
   redis: ^4.2.0
   release-it: 15.2.0
   typescript: 4.7.4
@@ -54,8 +52,6 @@ devDependencies:
   husky: 8.0.1
   lint-staged: 13.0.3
   prettier: 2.7.1
-  prettier-plugin-prisma: 4.1.0_prettier@2.7.1
-  prisma: 4.1.1
   release-it: 15.2.0
   typescript: 4.7.4
   vitest: 0.21.1
@@ -470,15 +466,6 @@ packages:
     dependencies:
       '@pnpm/network.ca-file': 1.0.1
       config-chain: 1.1.13
-    dev: true
-
-  /@prisma/engines/4.1.1:
-    resolution: {integrity: sha512-DCw8L/SS0IXqmj5IW/fMxOXiifnsfjBzDfRhf0j3NFWqvMCh9OtfjmXQZxVgI2mwvJLc/5jzXhkiWT39qS09dA==}
-    requiresBuild: true
-    dev: true
-
-  /@prisma/prisma-fmt-wasm/4.1.0-12.09f9659a3d73d5ed2aac8298e2856b8be910cd66:
-    resolution: {integrity: sha512-92cZ5P1IcJex6aIxFptU3HNv8g53b/eP0AhqmVGCiyzcTbwCQcbCMUycDuEoHjIuIR0o7XXdHIrXnbiQQMhEGg==}
     dev: true
 
   /@redis/bloom/1.0.2_@redis+client@1.2.0:
@@ -1415,8 +1402,8 @@ packages:
     engines: {node: '>=10'}
     hasBin: true
     dependencies:
-      JSONStream: 1.3.5
       is-text-path: 1.0.1
+      JSONStream: 1.3.5
       lodash: 4.17.21
       meow: 8.1.2
       split2: 3.2.2
@@ -3855,29 +3842,10 @@ packages:
       fast-diff: 1.2.0
     dev: true
 
-  /prettier-plugin-prisma/4.1.0_prettier@2.7.1:
-    resolution: {integrity: sha512-bGh1pEzEjSVky3T1uznlZlWgPzyJykEbkg8iFjsBKWMMrkEDRT+5iDJD0CSFjR3bI6r9KkQQJcRvUa5oUR6hwA==}
-    engines: {node: '>=12', npm: '>=7'}
-    peerDependencies:
-      prettier: '>=2'
-    dependencies:
-      '@prisma/prisma-fmt-wasm': 4.1.0-12.09f9659a3d73d5ed2aac8298e2856b8be910cd66
-      prettier: 2.7.1
-    dev: true
-
   /prettier/2.7.1:
     resolution: {integrity: sha512-ujppO+MkdPqoVINuDFDRLClm7D78qbDt0/NR+wp5FqEZOoTNAjPHWj17QRhu7geIHJfcNhRk1XVQmF8Bp3ye+g==}
     engines: {node: '>=10.13.0'}
     hasBin: true
-    dev: true
-
-  /prisma/4.1.1:
-    resolution: {integrity: sha512-yw50J8If2dKP4wYIi695zthsCASQFHiogGvUHHWd3falx/rpsD6Sb1LMLRV9nO3iGG3lozxNJ2PSINxK7xwdpg==}
-    engines: {node: '>=14.17'}
-    hasBin: true
-    requiresBuild: true
-    dependencies:
-      '@prisma/engines': 4.1.1
     dev: true
 
   /process-nextick-args/2.0.1:
