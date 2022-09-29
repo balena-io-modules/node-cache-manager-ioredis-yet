@@ -12,15 +12,12 @@ const config = {
 };
 
 beforeEach(async () => {
-  redisCache = cacheManager.caching({
-    store: await redisStore(config),
-    ...config,
-  }) as RedisCache;
+  redisCache = await cacheManager.caching(redisStore, config);
 
   await redisCache.reset();
   const conf = {
     ...config,
-    isCacheableValue: (val: unknown) => {
+    isCacheable: (val: unknown) => {
       if (val === undefined) {
         // allow undefined
         return true;
@@ -28,13 +25,10 @@ beforeEach(async () => {
         // disallow FooBarString
         return false;
       }
-      return redisCache.store.isCacheableValue(val);
+      return redisCache.store.isCacheable(val);
     },
   };
-  customRedisCache = cacheManager.caching({
-    store: await redisStore(conf),
-    ...conf,
-  }) as RedisCache;
+  customRedisCache = await cacheManager.caching(redisStore, conf);
 
   await customRedisCache.reset();
 });
@@ -43,10 +37,10 @@ describe('instance', () => {
   it('should be constructed', async () => {
     const instance: RedisClientType = await createClient(config);
     await instance.connect();
-    const cache = cacheManager.caching({
-      store: redisInsStore(instance, config),
-      ...config,
-    }) as RedisCache;
+    const cache = await cacheManager.caching(
+      (c) => redisInsStore(instance, c),
+      config,
+    );
     await cache.set('fooll', 'bar');
     await expect(cache.get('fooll')).resolves.toEqual('bar');
   });
@@ -60,7 +54,7 @@ describe('set', () => {
     expect(redisCache.set('foo', 'bar', config.ttl)).resolves.toBeUndefined());
 
   it('should store a value with a infinite ttl', () =>
-    expect(redisCache.set('foo', 'bar', { ttl: 0 })).resolves.toBeUndefined());
+    expect(redisCache.set('foo', 'bar', 0)).resolves.toBeUndefined());
 
   it('should not be able to store a null value (not cacheable)', () =>
     expect(redisCache.set('foo2', null)).rejects.toBeDefined());
@@ -76,20 +70,20 @@ describe('set', () => {
       new Error('"undefined" is not a cacheable value'),
     ));
 
-  it('should store an undefined value if permitted by isCacheableValue', async () => {
-    expect(customRedisCache.store.isCacheableValue(undefined)).toBe(true);
+  it('should store an undefined value if permitted by isCacheable', async () => {
+    expect(customRedisCache.store.isCacheable(undefined)).toBe(true);
     await customRedisCache.set('foo3', undefined);
   });
 
-  it('should not store a value disallowed by isCacheableValue', async () => {
-    expect(customRedisCache.store.isCacheableValue('FooBarString')).toBe(false);
+  it('should not store a value disallowed by isCacheable', async () => {
+    expect(customRedisCache.store.isCacheable('FooBarString')).toBe(false);
     await expect(
       customRedisCache.set('foobar', 'FooBarString'),
     ).rejects.toBeDefined();
   });
 
   it('should return an error if there is an error acquiring a connection', async () => {
-    await redisCache.store.getClient.disconnect();
+    await redisCache.store.client.disconnect();
     await expect(redisCache.set('foo', 'bar')).rejects.toBeDefined();
   });
 });
@@ -139,8 +133,8 @@ describe('mset', () => {
   it('should not store an invalid value', () =>
     expect(redisCache.store.mset([['foo1', undefined]])).rejects.toBeDefined());
 
-  it('should store an undefined value if permitted by isCacheableValue', async () => {
-    expect(customRedisCache.store.isCacheableValue(undefined)).toBe(true);
+  it('should store an undefined value if permitted by isCacheable', async () => {
+    expect(customRedisCache.store.isCacheable(undefined)).toBe(true);
     await customRedisCache.store.mset([
       ['foo3', undefined],
       ['foo4', undefined],
@@ -150,15 +144,15 @@ describe('mset', () => {
     ).resolves.toStrictEqual(['undefined', 'undefined']);
   });
 
-  it('should not store a value disallowed by isCacheableValue', async () => {
-    expect(customRedisCache.store.isCacheableValue('FooBarString')).toBe(false);
+  it('should not store a value disallowed by isCacheable', async () => {
+    expect(customRedisCache.store.isCacheable('FooBarString')).toBe(false);
     await expect(
       customRedisCache.store.mset([['foobar', 'FooBarString']]),
     ).rejects.toBeDefined();
   });
 
   it('should return an error if there is an error acquiring a connection', async () => {
-    await redisCache.store.getClient.disconnect();
+    await redisCache.store.client.disconnect();
     await expect(redisCache.store.mset([['foo', 'bar']])).rejects.toBeDefined();
   });
 });
@@ -182,7 +176,7 @@ describe('mget', () => {
     ).resolves.toStrictEqual([null, null]));
 
   it('should return an error if there is an error acquiring a connection', async () => {
-    await redisCache.store.getClient.disconnect();
+    await redisCache.store.client.disconnect();
     await expect(redisCache.store.mget('foo')).rejects.toBeDefined();
   });
 });
@@ -198,13 +192,11 @@ describe('del', () => {
       ['foo', 'bar'],
       ['foo2', 'bar2'],
     ]);
-    await expect(
-      redisCache.store.del(['foo', 'foo2']),
-    ).resolves.toBeUndefined();
+    await expect(redisCache.store.mdel('foo', 'foo2')).resolves.toBeUndefined();
   });
 
   it('should return an error if there is an error acquiring a connection', async () => {
-    await redisCache.store.getClient.disconnect();
+    await redisCache.store.client.disconnect();
     await expect(redisCache.del('foo')).rejects.toBeDefined();
   });
 });
@@ -213,7 +205,7 @@ describe('reset', () => {
   it('should flush underlying db', () => redisCache.reset());
 
   it('should return an error if there is an error acquiring a connection', async () => {
-    await redisCache.store.getClient.disconnect();
+    await redisCache.store.client.disconnect();
     await expect(redisCache.reset()).rejects.toBeDefined();
   });
 });
@@ -232,7 +224,7 @@ describe('ttl', () => {
     expect(redisCache.store.ttl('invalidKey')).resolves.toEqual(-2));
 
   it('should return an error if there is an error acquiring a connection', async () => {
-    await redisCache.store.getClient.disconnect();
+    await redisCache.store.client.disconnect();
     await expect(redisCache.store.ttl('foo')).rejects.toBeDefined();
   });
 });
@@ -263,37 +255,37 @@ describe('keys', () => {
   });
 
   it('should return an error if there is an error acquiring a connection', async () => {
-    await redisCache.store.getClient.disconnect();
+    await redisCache.store.client.disconnect();
     await expect(redisCache.store.keys()).rejects.toBeDefined();
   });
 });
 
-describe('isCacheableValue', () => {
+describe('isCacheable', () => {
   it('should return true when the value is not undefined', () => {
-    expect(redisCache.store.isCacheableValue(0)).toBeTruthy();
-    expect(redisCache.store.isCacheableValue(100)).toBeTruthy();
-    expect(redisCache.store.isCacheableValue('')).toBeTruthy();
-    expect(redisCache.store.isCacheableValue('test')).toBeTruthy();
+    expect(redisCache.store.isCacheable(0)).toBeTruthy();
+    expect(redisCache.store.isCacheable(100)).toBeTruthy();
+    expect(redisCache.store.isCacheable('')).toBeTruthy();
+    expect(redisCache.store.isCacheable('test')).toBeTruthy();
   });
 
   it('should return false when the value is undefined', () => {
-    expect(redisCache.store.isCacheableValue(undefined)).toBeFalsy();
+    expect(redisCache.store.isCacheable(undefined)).toBeFalsy();
   });
 
   it('should return false when the value is null', () => {
-    expect(redisCache.store.isCacheableValue(null)).toBeFalsy();
+    expect(redisCache.store.isCacheable(null)).toBeFalsy();
   });
 });
 
 describe('redis error event', () => {
   it('should return an error when the redis server is unavailable', async () => {
     await new Promise<void>((resolve) => {
-      redisCache.store.getClient.on('error', (err) => {
+      redisCache.store.client.on('error', (err) => {
         expect(err).not.toEqual(null);
         resolve();
       });
 
-      redisCache.store.getClient.emit('error', 'Something unexpected');
+      redisCache.store.client.emit('error', 'Something unexpected');
     });
   });
 });
