@@ -35,7 +35,7 @@ export interface RedisStore<T extends Clients = RedisClientType> extends Store {
 
 const getVal = (value: unknown) => JSON.stringify(value) || '"undefined"';
 
-export function builder<T extends Clients>(
+function builder<T extends Clients>(
   redisCache: T,
   name: Name<T>,
   reset: () => Promise<void>,
@@ -47,8 +47,8 @@ export function builder<T extends Clients>(
 
   const get = async <T>(key: string) => {
     const val = await redisCache.get(key);
-    if (val) return JSON.parse(val) as T;
-    else return undefined;
+    if (val === undefined || val === null) return undefined;
+    else return JSON.parse(val) as T;
   };
 
   return {
@@ -83,7 +83,11 @@ export function builder<T extends Clients>(
       redisCache
         .mGet(args)
         .then((x) =>
-          x.map((x) => (x === null ? null : (JSON.parse(x) as unknown))),
+          x.map((x) =>
+            x === null || x === undefined
+              ? undefined
+              : (JSON.parse(x) as unknown),
+          ),
         ),
     async mdel(...args) {
       await redisCache.del(args);

@@ -63,6 +63,10 @@ describe('set', () => {
     const value = 'baz';
     await redisCache.set('foo', value);
     await expect(redisCache.get('foo')).resolves.toEqual(value);
+
+    const v = 0;
+    await redisCache.set('foo', v);
+    await expect(redisCache.get('foo')).resolves.toEqual(v);
   });
 
   it('should not store an invalid value', () =>
@@ -173,7 +177,7 @@ describe('mget', () => {
   it('should return null when the key is invalid', () =>
     expect(
       redisCache.store.mget('invalidKey', 'otherInvalidKey'),
-    ).resolves.toStrictEqual([null, null]));
+    ).resolves.toStrictEqual([undefined, undefined]));
 
   it('should return an error if there is an error acquiring a connection', async () => {
     await redisCache.store.client.disconnect();
