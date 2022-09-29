@@ -1,14 +1,14 @@
 {
   "compilerOptions": {
-    "declaration": true,
-    "moduleResolution": "node",
-    "module": "commonjs",
-    "esModuleInterop": true,
     "lib": ["esnext"],
-    "outDir": "dist",
-    "removeComments": true,
+    "target": "ES2015",
+    "module": "commonjs",
     "strict": true,
-    "target": "ES2015"
+    "esModuleInterop": true,
+    "sourceMap": true,
+    "outDir": "dist",
+    "declaration": true,
+    "incremental": true
   },
-  "exclude": ["node_modules", "coverage", "dist"]
+  "exclude": ["dist"]
 }
