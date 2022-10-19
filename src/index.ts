@@ -5,7 +5,7 @@ import type { Cache, Store, Config } from 'cache-manager';
 export type RedisCache = Cache<RedisStore>;
 
 export interface RedisStore extends Store {
-  isCacheable: (value: unknown) => boolean;
+  readonly isCacheable: (value: unknown) => boolean;
   get client(): Redis;
 }
 
