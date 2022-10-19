@@ -1,18 +1,19 @@
 import { describe, expect, it, beforeEach } from 'vitest';
-import cacheManager from 'cache-manager';
+import { Config, caching } from 'cache-manager';
 import { redisStore, RedisCache, redisInsStore } from '../src';
-import { createClient, RedisClientType } from 'redis';
+import Redis, { RedisOptions } from 'ioredis';
 
 let redisCache: RedisCache;
 let customRedisCache: RedisCache;
 
-const config = {
-  url: 'redis://localhost:6379',
+const config: RedisOptions & Config = {
+  port: 6379,
+  host: 'localhost',
   ttl: 0,
 };
 
 beforeEach(async () => {
-  redisCache = await cacheManager.caching(redisStore, config);
+  redisCache = await caching(redisStore, config);
 
   await redisCache.reset();
   const conf = {
@@ -28,19 +29,15 @@ beforeEach(async () => {
       return redisCache.store.isCacheable(val);
     },
   };
-  customRedisCache = await cacheManager.caching(redisStore, conf);
+  customRedisCache = await caching(redisStore, conf);
 
   await customRedisCache.reset();
 });
 
 describe('instance', () => {
   it('should be constructed', async () => {
-    const instance: RedisClientType = await createClient(config);
-    await instance.connect();
-    const cache = await cacheManager.caching(
-      (c) => redisInsStore(instance, c),
-      config,
-    );
+    const instance = new Redis(config || {});
+    const cache = await caching((c) => redisInsStore(instance, c), config);
     await cache.set('fooll', 'bar');
     await expect(cache.get('fooll')).resolves.toEqual('bar');
   });
@@ -54,7 +51,7 @@ describe('set', () => {
     expect(redisCache.set('foo', 'bar', config.ttl)).resolves.toBeUndefined());
 
   it('should store a value with a infinite ttl', () =>
-    expect(redisCache.set('foo', 'bar', 0)).resolves.toBeUndefined());
+    expect(redisCache.set('fooz', 'bar', 0)).resolves.toBeUndefined());
 
   it('should not be able to store a null value (not cacheable)', () =>
     expect(redisCache.set('foo2', null)).rejects.toBeDefined());
@@ -123,7 +120,7 @@ describe('mset', () => {
   it('should not be able to store a null value (not cacheable)', () =>
     expect(redisCache.store.mset([['foo2', null]])).rejects.toBeDefined());
 
-  it('should store a value without callback', async () => {
+  it('should store a value', async () => {
     await redisCache.store.mset([
       ['foo', 'baz'],
       ['foo2', 'baz2'],
